@@ -13,14 +13,18 @@
 -- the highest daily total on the same date, return all of them.
 -- ============================================================
 
-with temp_table as (
-select *, rank() over (partition by order_date order by total_order_cost desc) from orders 
-where order_date between '2019-02-01' and '2019-05-01')
-select c.first_name, total_order_cost, order_date from temp_table
-join customers c on c.id = cust_id
-where rank = 1
-order by order_date;
-
+with daily_totals as (
+select cust_id, order_date, sum(total_order_cost) as max_cost from orders
+where order_date between '2019-02-01' and '2019-05-01'
+group by 1, 2
+),
+ranked as (
+select *, rank() over (partition by order_date order by max_cost desc) as rnk from daily_totals
+)
+select c.first_name, r.order_date, r.max_cost from ranked r
+join customers c on c.id = r.cust_id
+where r.rnk = 1
+order by r.order_date
 
 -- ============================================================
 -- PROBLEM 2
@@ -31,17 +35,10 @@ order by order_date;
 -- - The number launched in 2019.)
 -- ============================================================
 
-with total_prod as (
-select year, company_name, count(*) as total_products from car_launches
-where year in (2019, 2020)
-group by company_name, year
-),
-net_prod as (
-select company_name, total_products - lag(total_products) over (partition by company_name order by year) as net_products from total_prod
-order by company_name
-)
-select * from net_prod where net_products is not null;
-
+select company_name,
+count(distinct case when year = 2020 then product_name end) - 
+count(distinct case when year = 2019 then product_name end) as diff from car_launches
+group by company_name
 
 -- ============================================================
 -- PROBLEM 3
@@ -59,6 +56,13 @@ select *, lag_1 - lag(lag_1) over (partition by user_id order by record_date) as
 select user_id from lag_12
 where lag_11 = 0 and lag_2 = 2;
 
+-- update to how I solved the second time
+select user_id from 
+(
+select user_id, record_date - (row_number() over (partition by user_id order by record_date))::int as diff from sf_events
+) as tb1
+group by user_id, diff
+having count(diff) >= 3
 
 -- ============================================================
 -- PROBLEM 4
