@@ -122,6 +122,22 @@ select country, rnk - lag(rnk) over (partition by country order by month desc) a
 select country from tb5
 where rnk_diff < 0;
 
+--updated attempt 2
+with tb1 as (
+select b.country, extract('year' from  a.created_at) as year,
+sum(a.number_of_comments) as total_comments
+from fb_comments_count a
+join fb_active_users b on a.user_id = b.user_id
+where a.created_at between '2019-12-01' and '2020-01-31'
+group by 1, 2
+),
+tb2 as (
+select country, year, dense_rank() over (partition by year order by total_comments desc) as rnk from tb1
+)
+select country from tb2
+group by country
+having max(case when year = 2020 then rnk end) < max(case when year = 2019 then rnk end)
+-- earlier I had used then 0 which cause an error because Canada had no comments for the year 2020 and gave me a false position because of the comparision between 0 for year 2020 and its non-zero rank for year 2019
 
 -- ============================================================
 -- PROBLEM 6
@@ -165,3 +181,15 @@ select year, month, avg(total_sales) over (order by year, month rows between 2 p
 offset 2
 )
 select year_month, rolling_avg from tb2;
+
+-- =======================================================================
+
+-- Calculates the difference between the highest salaries in the marketing and engineering departments. Output just the absolute difference in salaries.
+
+select
+    abs(
+        max(case when b.department = 'engineering' then a.salary end) - 
+        max(case when b.department = 'marketing' then a.salary end)
+    ) as abs_diff from db_employee a
+join db_dept b on a.department_id = b.id
+
