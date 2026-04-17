@@ -148,10 +148,10 @@ having max(case when year = 2020 then rnk end) < max(case when year = 2019 then 
 -- ============================================================
 
 select winery from winemag_p1
-where description like '% plum %' or
-description like '% cherry %' or
-description like '% rose %' or
-description like '% hazelnut %';
+where description ilike '% plum %' or
+description ilike '% cherry %' or
+description ilike '% rose %' or
+description ilike '% hazelnut %';
 
 
 -- ============================================================
@@ -193,3 +193,13 @@ select
     ) as abs_diff from db_employee a
 join db_dept b on a.department_id = b.id
 
+-- ==========================================================================
+
+-- We have a table with employees and their salaries; however, some of the records are old and contain outdated salary information. Since there is no timestamp, assume salary is non-decreasing over time. You can consider the current salary for an employee is the largest salary value among their records. If multiple records share the same maximum salary, return any one of them. Output their id, first name, last name, department ID, and current salary. Order your list by employee ID in ascending order.
+-- this is an easy question but I still spend time on it because of my assumption which were totally wrong. I just grouped by id, departmen_id, first_name, last_name and assumed that every record is unique but then there was one record where department_id was different for the same employee. The valid approach is quite simple don't assume things
+
+with tb1 as (
+select *, rank() over (partition by id order by salary desc) as rnk from ms_employee_salary
+)
+select id, first_name, last_name, department_id, salary from tb1
+where rnk = 1
