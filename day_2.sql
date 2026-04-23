@@ -102,6 +102,18 @@ tb2 as (
 select user_id, avg(diff) as avg_diff from tb2
 group by user_id;
 
+--second attempt to learn something new 
+select user_id, avg(session_time) as avg_session_time from 
+(
+select user_id, to_char(timestamp, 'yyyy-mm-dd') as date_time, 
+min(case when action = 'page_exit' then timestamp end) -
+max(case when action = 'page_load' then timestamp end) as session_time
+from facebook_web_log
+group by 1, 2
+) as tb1
+where extract(epoch from session_time) > 0
+group by user_id
+
 
 -- ------------------------------------------------------------
 -- 6. Find the base pay for Police Captains.

@@ -1,10 +1,11 @@
 -- Identify returning active users by finding users who made a repeat purchase within 7 days or less of their previous transaction, excluding same-day purchases. Output a list of these user_id.
 
 with tb1 as (
-select user_id, created_at - lag(created_at) over (partition by user_id order by created_at) as diff from amazon_transactions
+select user_id, created_at - lag(created_at) over (partition by user_id order by created_at) as diff, row_number() over (partition by user_id order by created_at) as rn from amazon_transactions
 )
 select distinct(user_id) from tb1
-where diff between 1 and 7
+where diff between 1 and 7 and rn = 2
+
 -- between is inclusive on both the ends
 -- within 7 days means the difference can be 1, 2, 3, 4, 5, 6, 7 
 -- so the 7th day is included.
